@@ -57,7 +57,14 @@ func createConfig() {
 
 func main() {
 	// // For status messages
-	color.White("Incremental Backup System\n\n") // starting some action/command/function
+	color.White("Incremental Backup System\n\n")
+
+	color.White("==============================================================\n")
+	color.Blue("Informe o diretório e se deseja salvar histórico dos arquivos: ")
+	color.Green("Exemplo: /home/user/backup true\n")
+	color.White("==============================================================\n\n")
+
+	// starting some action/command/function
 	// color.Green("Hello World!")             // finished with success
 	// color.Red("Hello World!")               // finished with error
 
@@ -91,18 +98,37 @@ func main() {
 
 	for {
 		reader := bufio.NewReader(os.Stdin)
-		color.Blue("Informe o diretório: ")
+
 		str, _ := reader.ReadString('\n')
+		strArray := strings.Split(str, " ")
 
-		dirPath, saveHistory := strings.Split(str, " ")[0], strings.Split(str, " ")[1]
+		if len(strArray) != 2 {
+			color.Red("Erro: Faltam argumentos. Exemplo: <diretório> <bool: salvar_historico>\n\n")
+			continue
+		} else if len(strArray) > 2 {
+			color.Red("Erro: Muitos argumentos. Exemplo: <diretório> <bool: salvar_historico>\n\n")
+			continue
+		}
 
-		fmt.Print("Diretório: " + dirPath)
-		fmt.Print("Salvar histórico: " + saveHistory)
+		dirPath := strings.TrimSpace(strArray[0])
+		saveHistory := strings.TrimSpace(strArray[1])
+
+		if dirPath == "" {
+			color.Red("Erro: Diretório inválido. Exemplo: <diretório> <bool: salvar_historico>\n\n")
+			continue
+		} else if saveHistory != "true" && saveHistory != "false" {
+			color.Red("Erro: Argumento 'salvar_historico' inválido. Exemplo: <diretório> <bool: salvar_historico>\n\n")
+			continue
+		}
 
 		isFirstBackupString := "false"
 		if verifyIsFirstBackup() {
 			isFirstBackupString = "true"
 		}
+
+		fmt.Print("\nDiretório: " + dirPath)
+		fmt.Print("\nSalvar histórico: " + saveHistory)
+		fmt.Print("\nPrimeiro backup: " + isFirstBackupString + "\n\n")
 
 		request := Request{
 			DirPath:       dirPath,
