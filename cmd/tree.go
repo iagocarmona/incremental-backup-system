@@ -54,6 +54,7 @@ func insert_dir_entry(local_dir_entry DirEntry, server_dir *Node) {
 func search_dir_entry(local_dir_entry DirEntry, server_dir *Node) bool {
 
 	// retornar a direntry por parâmetro se encontrar e bool (para o caso de não encontrar)
+	return false
 }
 
 // func create_node() *Node {}
