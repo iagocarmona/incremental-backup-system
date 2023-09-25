@@ -6,4 +6,4 @@ type message struct {
 	Message string `json:"message"`
 }
 
-func main() {}
+// func main() {}

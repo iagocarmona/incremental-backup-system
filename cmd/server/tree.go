@@ -40,6 +40,15 @@ func insert_dir_entry(local_dir_entry DirEntry, server_dir *Node) {
 		// não será o mesmo do server_dir (até porque esse node ainda não existe no server)
 
 		// Inserir o conteúdo da pasta local_dir_entry em server_dir
+		childDirSize := len(local_dir_entry.Dir.dirEntries)
+
+		for childDirSize > 0 {
+
+			server_dir.dirEntries[ultima_posicao].Dir.dirEntries[childDirSize] = local_dir_entry.Dir.dirEntries[childDirSize]
+			// mas se encontrar um dirEntry que é uma pasta, deveria entrar numa recursão (recursão de quem? onde? onde começa?)
+			childDirSize -= 1
+		}
+
 		server_dir.dirEntries = append(server_dir.dirEntries, local_dir_entry.Dir.dirEntries...)
 	}
 }
@@ -55,6 +64,15 @@ func search_dir_entry(local_dir_entry DirEntry, server_dir *Node) bool {
 
 	// retornar a direntry por parâmetro se encontrar e bool (para o caso de não encontrar)
 }
+
+//função para definir o que será feito com o diretório: criar ou atualizar
+// func serverDirStatus() {
+//  se server_dir for igual a local_dir_entry (se existe na árvore do server)
+// 		se o modDate do local_dir_entry é maior que o modDate do server_dir (se houve alteração no local_dir_entry)
+// 			atualizar o server_dir
+//	se direntry não existe na árvore
+// 		inserir direntry
+//}
 
 // func create_node() *Node {}
 
@@ -79,7 +97,8 @@ func main() {
 	}
 
 	// criando o root (com o Node criado acima)
-	tree.root = &node1
+	tree.root = &node1 // ponteiro que aponta para o primeiro nó da árvore, isto é, aponta para o diretório que o usuário passar como parâmetro
+	// no primeiro backup
 
 	// criando um file para ser inserido pela func insert_file
 	file_to_insert := DirEntry{
