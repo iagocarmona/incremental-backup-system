@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+// ********* Hash *********
+// CreateLocalHash(): criar uma hash, percorrer estrutura de diretórios local com WalkDir() e adicionando chave (path) e valor (dirEntry) à hash
+// CreateServerHash(): ?
+
+// Diferenca(localHash, serverHash): lista as dirEntries novas ou alteradas no local e não existem ou estão mais antigas no server (talvez dê pra separar em duas func, mas talvez dê pra fazer tudo junto)
+// UpdateServerHash(lista_modificacao, serverHash): insere as novas (e/ou modificadas) dirEntries na hash do server
+// DifInversa ou Complemento - n sei se eh complemento (serverHash, localHash): exclui as dirEntries que existem no server e não existem no local (se a flag... ou verificar essa flag antes de permitir a chamada dessa func)
+
+// CreateDirTree(): transforma o hash do server em uma estrutura de diretórios
+// ************************
+
 // Entrada de diretório: arquivo ou diretório
 type DirEntry struct {
 	Name    string
