@@ -12,7 +12,6 @@ import (
 
 // ********* Hash *********
 // CreateLocalHash(): criar uma hash, percorrer estrutura de diretórios local com WalkDir() e adicionando chave (path) e valor (dirEntry) à hash
-// CreateServerHash(): ?
 
 // Diferenca(localHash, serverHash): lista as dirEntries novas ou alteradas no local e não existem ou estão mais antigas no server (talvez dê pra separar em duas func, mas talvez dê pra fazer tudo junto)
 // UpdateServerHash(lista_modificacao, serverHash): insere as novas (e/ou modificadas) dirEntries na hash do server
@@ -49,9 +48,6 @@ func (ht *HashTable) Put(key string, d fs.DirEntry) {
 	}
 }
 
-// Atualiza o file modificado na máquina local para na árvore do servidor
-// func update_file() {}
-
 // Cria a tabela hash da máquina local (client)
 func CreateLocalHash(dirPath string) map[string]DirEntry {
 
@@ -72,8 +68,8 @@ func CreateLocalHash(dirPath string) map[string]DirEntry {
 	localHash := HashTable{}
 	localHash.table = make(map[string]DirEntry)
 
-	fmt.Println("Hash inicial:")
-	fmt.Println(localHash.table)
+	// fmt.Println("Hash inicial:")
+	// fmt.Println(localHash.table)
 
 	// Percorre o diretório especificado no comando recursivamente de forma préfixa
 	err = filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
@@ -84,42 +80,11 @@ func CreateLocalHash(dirPath string) map[string]DirEntry {
 			return filepath.SkipDir
 		}
 
-		// Inserindo key: path e value: dirEntry na hash
-		localHash.Put(path, d)
-
 		// Verificando se d é um arquivo
-		// if !d.IsDir() {
-
-		// Verifiando se o arquivo existe no servidor e/ou foi modificado
-		// info, err := d.Info()
-		// if err != nil {
-		// 	log.Fatalf("Erro ao verificar o arquivo: %s", err)
-		// }
-		// fmt.Print(info)
-
-		// Enviar path e info.ModTime() para o server
-		// para ele verificar se o arquivo existe ou foi alterado
-		// response := serverDirStatus(path, info.ModTime())
-
-		// Se o arquivo existe e não foi modificado
-		// continue
-
-		// Se o arquivo não existe no servidor ou foi modificado {
-
-		// Obtendo o conteúdo do arquivo
-		// fileData, err := readFile(path)
-		// if err != nil {
-		// 	log.Fatalf("Erro ao ler o arquivo: %s", err)
-		// }
-
-		// // Codificando o conteúdo do arquivo em base64
-		// fileContentBase64 := base64.StdEncoding.EncodeToString(fileData)
-
-		// enviar (path, info.ModTime(), fileContentBase64) para o server
-
-		// }
-
-		// }
+		if !d.IsDir() {
+			// Inserindo key: path e value: dirEntry na hash
+			localHash.Put(path, d)
+		}
 
 		return nil
 	})
@@ -133,10 +98,42 @@ func CreateLocalHash(dirPath string) map[string]DirEntry {
 	return localHash.table
 }
 
+// Compara a hash local com a hash do server buscando o que existe na hash do local mas não existe na hash do server (ou que precisa ser atualizado no server)
+func Diferenca(localHash, serverHash map[string]DirEntry) []string {
+
+	// Lista que será enviada para o cliente que fornecerá os arquivos que precisam ser atualizados ou criados no servidor
+	toUpdateList := []string{}
+
+	for keyLocal := range localHash {
+
+		// se o elemento que está em localHash também existir em serverHash
+		if _, exist := serverHash[keyLocal]; exist {
+
+			// comparar a data de modificação
+			// se a data de modificação do elemento em localHash for mais recente que a data de modificação do elemento em serverHash
+			if (localHash[keyLocal].ModDate).Before(serverHash[keyLocal].ModDate) {
+
+				// atualizar o elemento que está em localHsash para o serverHash
+				// adicionando a keyLocal em toUpdateList
+				toUpdateList = append(toUpdateList, keyLocal)
+			}
+		} else {
+			// se o elemento que está em localHash não existir em serverHash
+			// Adiciona a keyLocal em toUpdateList
+			toUpdateList = append(toUpdateList, keyLocal)
+		}
+	}
+
+	return toUpdateList
+}
+
 func main() {
-	local_hash := CreateLocalHash("../../Backup-System")
+	hash1 := CreateLocalHash("../../Backup-System")
+	fmt.Println("hash backup pronto, ja tenho")
+	time.Sleep(20 * time.Second)
+	fmt.Println("criando hash2...")
+	hash2 := CreateLocalHash("../../Backup-System")
 
-	fmt.Println("Hash final:")
-	fmt.Print(local_hash)
-
+	// simulando hash_loal e hash_server
+	fmt.Println(Diferenca(hash1, hash2))
 }

@@ -9,6 +9,8 @@ import (
 	"net"
 	"strings"
 
+	// hash "incremental-backup-system/cmd"
+
 	"github.com/fatih/color"
 	"github.com/spf13/viper"
 )
@@ -101,10 +103,11 @@ func main() {
 		str, _ := reader.ReadString('\n')
 		strArray := strings.Split(str, " ")
 
-		if len(strArray) != 2 {
+		if len(strArray) < 2 {
 			color.Red("Erro: Faltam argumentos. Exemplo: <diretório> <bool: salvar_historico>\n\n")
 			continue
-		} else if len(strArray) > 2 {
+		}
+		if len(strArray) > 2 {
 			color.Red("Erro: Muitos argumentos. Exemplo: <diretório> <bool: salvar_historico>\n\n")
 			continue
 		}
@@ -138,6 +141,10 @@ func main() {
 		if verifyIsFirstBackup() {
 			color.Blue("\nPrimeiro backup")
 			createConfig()
+
+			// cria a hash local e envia pro server
+			// localHash := hash.CreateLocalHash(dirPath)
+
 		} else {
 			color.Blue("\nNão é o primeiro backup")
 		}
