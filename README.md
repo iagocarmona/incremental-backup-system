@@ -26,7 +26,7 @@ Execute as seguintes linhas de comando no terminal.
 - `cd client`
 - `go run . <porta>`
 
-## por padrão `porta` será **6677**
+por padrão `porta` será **6677**
 
 # Autores
 
