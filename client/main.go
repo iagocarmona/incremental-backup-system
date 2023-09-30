@@ -76,34 +76,13 @@ func createConfig() {
 	}
 }
 
-func resetConfig() {
-	// Configure o Viper para usar o local storage
-	viper.SetConfigName("config") // Nome do arquivo de configuração (ex: config.yaml)
-	viper.AddConfigPath("../")    // Diretório onde o arquivo de configuração está localizado
-	viper.SetConfigType("yaml")   // Tipo do arquivo de configuração (ex: YAML)
-
-	// Ler o arquivo de configuração
-	if err := viper.ReadInConfig(); err != nil {
-		color.Red("Erro ao ler o arquivo de configuração: %v\n", err)
-		return
-	}
-
-	// Criar a variável isFirstBackup no local storage
-	viper.Set("isFirstBackup", true)
-
-	// Salvar a variável isFirstBackup no local storage
-	if err := viper.WriteConfig(); err != nil {
-		color.Red("Erro ao salvar o arquivo de configuração: %v\n", err)
-		return
-	}
-}
-
 func printHeader() {
-	color.White("\n==============================================================\n")
-	color.White("INCREMENTAL BACKUP SYSTEM\n\n")
+	color.White("\n==================================================================")
+	color.White("                  INCREMENTAL BACKUP SYSTEM\n\n")
 	color.Blue("> Informe o diretório e se deseja salvar histórico dos arquivos: ")
-	color.Green("Exemplo: /home/user/backup true\n")
-	color.White("==============================================================\n\n")
+	color.Green("Exemplo: /home/user/backup true")
+	color.White("===================================================================\n\n")
+	fmt.Print("> ")
 }
 
 func sendFullBackup(request Request, conn net.Conn) {
@@ -352,10 +331,10 @@ func main() {
 		// Se não houve erro, envia uma mensagem de sucesso
 		if err != nil {
 			color.Red("Erro ao enviar arquivos:", err)
-			resetConfig()
 			continue
 		} else {
 			color.Green("\n -> Backup realizado com sucesso!\n")
+			os.Exit(0)
 		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/fatih/color"
+	"github.com/spf13/viper"
 )
 
 type Request struct {
@@ -193,6 +194,7 @@ func handleClient(conn net.Conn) {
 			return
 		}
 
+		// Verifica se é o primeiro backup
 		if request.IsFirstBackup == "true" {
 			// Envia uma confirmação ao cliente
 			_, err = conn.Write([]byte{1})
@@ -213,7 +215,28 @@ func handleClient(conn net.Conn) {
 
 			receiveFiles(conn, backupPath)
 		}
+	}
+}
 
+func resetConfig() {
+	// Configure o Viper para usar o local storage
+	viper.SetConfigName("config") // Nome do arquivo de configuração (ex: config.yaml)
+	viper.AddConfigPath("../")    // Diretório onde o arquivo de configuração está localizado
+	viper.SetConfigType("yaml")   // Tipo do arquivo de configuração (ex: YAML)
+
+	// Ler o arquivo de configuração
+	if err := viper.ReadInConfig(); err != nil {
+		color.Red("Erro ao ler o arquivo de configuração: %v\n", err)
+		return
+	}
+
+	// Criar a variável isFirstBackup no local storage
+	viper.Set("isFirstBackup", true)
+
+	// Salvar a variável isFirstBackup no local storage
+	if err := viper.WriteConfig(); err != nil {
+		color.Red("Erro ao salvar o arquivo de configuração: %v\n", err)
+		return
 	}
 }
 
