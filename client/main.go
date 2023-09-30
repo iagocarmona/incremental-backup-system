@@ -33,6 +33,21 @@ func verifyIsFirstBackup() bool {
 	return viper.GetBool("isFirstBackup")
 }
 
+func getHostAndPort() string {
+	// Configure o Viper para usar o local storage
+	viper.SetConfigName("config") // Nome do arquivo de configuração (ex: config.yaml)
+	viper.AddConfigPath(".")      // Diretório onde o arquivo de configuração está localizado
+	viper.SetConfigType("yaml")   // Tipo do arquivo de configuração (ex: YAML)
+
+	// Ler o arquivo de configuração
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Printf("Erro ao ler o arquivo de configuração: %v\n", err)
+		return ""
+	}
+
+	return viper.GetString("host") + ":" + viper.GetString("port")
+}
+
 func createConfig() {
 	// Configure o Viper para usar o local storage
 	viper.SetConfigName("config") // Nome do arquivo de configuração (ex: config.yaml)
@@ -55,46 +70,33 @@ func createConfig() {
 	}
 }
 
-func main() {
-	// // For status messages
+func printHeader() {
+	color.White("\n\n==============================================================\n")
 	color.White("Incremental Backup System\n\n")
-
-	color.White("==============================================================\n")
 	color.Blue("Informe o diretório e se deseja salvar histórico dos arquivos: ")
 	color.Green("Exemplo: /home/user/backup true\n")
 	color.White("==============================================================\n\n")
+}
 
-	// starting some action/command/function
-	// color.Green("Hello World!")             // finished with success
-	// color.Red("Hello World!")               // finished with error
-
-	// 1 - Encontrar o diretório (especifiado no comando) na máquina local
-	// 2 - Percorrer esse diretório:
-	//			Existe algo dentro? (root != nil)
-	// 				Percorrer dirEntries[] verificando:
-
-	// 					se (é um file)
-	//						se (ainda não existe no servidor) -> copiar para o servidor ( insert_file() )
-	//                  	se (existe no servidor) e (foi modificado) -> atualizar no servidor ( update_file() )
-	//		                Edge Case: como verificar se um arquivo que foi apagado da máquina local existe no servidor? acho que essa verificação para realizar o delete_file() não ocorre aqui
-
-	//                  se (é um dir)
-	// 						se (ainda não existe no servidor) -> criar no servidor ( insert_node() )
-
+func main() {
 	arguments := os.Args
+	CONNECT := ""
 
 	if len(arguments) == 1 {
-		fmt.Println("Please provide host:port.")
-		return
+		color.Yellow("host:port não informado. Using from config.yaml")
+		CONNECT = getHostAndPort()
+	} else {
+		CONNECT = arguments[1]
 	}
 
-	CONNECT := arguments[1]
 	conn, err := net.Dial("tcp", CONNECT)
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	printHeader()
 
 	for {
 		reader := bufio.NewReader(os.Stdin)
