@@ -165,7 +165,7 @@ func main() {
 /*
 // Percorre as entradas de diretório do SO
 func walkDirLocal() {
-	dirPath := "cmd/server" // request.DirPath  // TODO: receber isso como parametro (?)
+	dirPath := "cmd/server" // request.DirPath
 
 	// Verificando se o diretório (especificado no comando) existe na máquina local
 	_, err := os.Stat(dirPath)
@@ -181,6 +181,10 @@ func walkDirLocal() {
 	err = filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
 
 		fmt.Println(path, d.Name(), "directory?", d.IsDir())
+
+		// Criando a hash local
+		// atribuir 'path' como key da hash
+		// atribuir 'd.Name()' e 'd.ModTime()' na dirEntry (valor da hash)
 
 		// Verificando se d é um arquivo
 		if !d.IsDir() {
