@@ -5,13 +5,9 @@ import (
 	"fmt"
 	"net"
 	"os"
-)
 
-// type message struct {
-// 	ID      int    `json:"id"`
-// 	Type    string `json:"type"`
-// 	Message string `json:"message"`
-// }
+	"github.com/fatih/color"
+)
 
 type Request struct {
 	DirPath       string
@@ -20,6 +16,7 @@ type Request struct {
 }
 
 func handleClient(conn net.Conn) {
+	color.Green("\nConexão estabelecida!\n\n")
 	defer conn.Close()
 
 	for {
@@ -38,24 +35,27 @@ func handleClient(conn net.Conn) {
 			continue
 		}
 
-		fmt.Printf("Diretório: %s\nPrimeiro Backup: %v\nSave History: %s", request.DirPath, request.IsFirstBackup, request.SaveHistory)
+		fmt.Printf("Diretório: %s\nPrimeiro Backup: %v\nSave History: %s\n", request.DirPath, request.IsFirstBackup, request.SaveHistory)
 
 	}
 }
 
 func main() {
-	arguments := os.Args
-	if len(arguments) == 1 {
-		fmt.Println("Please provide port number")
-		return
+	if len(os.Args) == 1 {
+		color.Yellow("Port not provided, for default port use 6677")
+		os.Args = append(os.Args, "6677")
 	}
 
-	PORT := ":" + arguments[1]
+	PORT := ":" + os.Args[1]
 	ln, err := net.Listen("tcp", PORT)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	fmt.Printf("Server is running on port ")
+	color.Green(PORT)
+
 	defer ln.Close()
 
 	for {
