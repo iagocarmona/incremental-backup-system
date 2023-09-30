@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/spf13/viper"
@@ -123,6 +124,8 @@ func receiveFiles(conn net.Conn, backupPath string) {
 			return
 		}
 
+		fmt.Printf("Recebendo arquivo %s...\n", fileName)
+
 		// envia uma confirmação de 1 byte para o cliente
 		_, err = conn.Write([]byte{1})
 		if err != nil {
@@ -164,6 +167,23 @@ func receiveFiles(conn net.Conn, backupPath string) {
 	}
 }
 
+func removeMiddleDots(input string) string {
+	parts := strings.Split(input, "/")
+	output := []string{}
+
+	for _, part := range parts {
+		if part == ".." {
+			if len(output) > 0 {
+				output = output[:len(output)-1]
+			}
+		} else {
+			output = append(output, part)
+		}
+	}
+
+	return strings.Join(output, "/")
+}
+
 func handleClient(conn net.Conn) {
 	color.Green("\nConexão estabelecida!\n\n")
 	defer conn.Close()
@@ -187,7 +207,10 @@ func handleClient(conn net.Conn) {
 		fmt.Printf("Diretório: %s\nPrimeiro Backup: %v\nSave History: %s\n", request.DirPath, request.IsFirstBackup, request.SaveHistory)
 
 		// Cria o diretório de backup
-		backupPath := "backups/" + request.DirPath + "/"
+		backupPath := request.DirPath + "/"
+		backupPath = removeMiddleDots(backupPath)
+		backupPath = "backups/" + backupPath
+
 		err = os.MkdirAll(backupPath, os.ModePerm)
 		if err != nil {
 			fmt.Println("Erro ao criar o diretório de backup:", err)

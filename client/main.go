@@ -81,7 +81,7 @@ func printHeader() {
 	color.White("                  INCREMENTAL BACKUP SYSTEM\n\n")
 	color.Blue("> Informe o diretório e se deseja salvar histórico dos arquivos: ")
 	color.Green("Exemplo: /home/user/backup true")
-	color.White("===================================================================\n\n")
+	color.White("==================================================================\n\n")
 	fmt.Print("> ")
 }
 
