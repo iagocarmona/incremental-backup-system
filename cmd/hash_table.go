@@ -127,6 +127,24 @@ func Diferenca(localHash, serverHash map[string]DirEntry) []string {
 	return toUpdateList
 }
 
+// Verifica os arquivos que precisam ser excluídos do server
+func DiffToDelete(serverHash, localHash map[string]DirEntry) []string {
+
+	// Lista que o server utilizará para excluir os arquivos
+	toDeleteList := []string{}
+
+	for keyServer := range serverHash {
+
+		// se o elemento que está em serverHash não existir em localHash
+		if _, exist := localHash[keyServer]; !exist {
+
+			// Adiciona na lista para exclui o path keyServer de serverHash
+			toDeleteList = append(toDeleteList, keyServer)
+		}
+	}
+	return toDeleteList
+}
+
 func main() {
 	hash1 := CreateLocalHash("../../Backup-System")
 	fmt.Println("hash backup pronto, ja tenho")
@@ -136,4 +154,6 @@ func main() {
 
 	// simulando hash_loal e hash_server
 	fmt.Println(Diferenca(hash1, hash2))
+	fmt.Println()
+	fmt.Println(DiffToDelete(hash2, hash1))
 }
