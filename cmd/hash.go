@@ -47,6 +47,11 @@ func (ht *HashTable) Put(key string, d fs.DirEntry) {
 	}
 }
 
+// crie uma função para remover uma chave
+func Remove(serverHash *map[string]DirEntry, key string) {
+	delete(*serverHash, key)
+}
+
 // Cria a tabela hash da máquina local (client)
 func CreateLocalHash(dirPath string) map[string]DirEntry {
 
@@ -67,13 +72,8 @@ func CreateLocalHash(dirPath string) map[string]DirEntry {
 	localHash := HashTable{}
 	localHash.table = make(map[string]DirEntry)
 
-	// fmt.Println("Hash inicial:")
-	// fmt.Println(localHash.table)
-
 	// Percorre o diretório especificado no comando recursivamente de forma préfixa
 	err = filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
-
-		//fmt.Println(path, d.Name(), "directory?", d.IsDir())
 
 		if d.Name() == ".git" {
 			return filepath.SkipDir
@@ -90,9 +90,6 @@ func CreateLocalHash(dirPath string) map[string]DirEntry {
 	if err != nil {
 		log.Fatalf("impossible to walk directories: %s", err)
 	}
-
-	// fmt.Println("Hash final:")
-	// fmt.Print(localHash.table)
 
 	return localHash.table
 }
@@ -112,8 +109,7 @@ func (ht *HashTable) ToMap() map[string]DirEntry {
 }
 
 // Compara a hash local com a hash do server buscando o que existe na hash do local mas não existe na hash do server (ou que precisa ser atualizado no server)
-func Diff(localHash, serverHash map[string]DirEntry) []string {
-
+func DiffToUpdate(localHash, serverHash map[string]DirEntry) []string {
 	// Lista que será enviada para o cliente que fornecerá os arquivos que precisam ser atualizados ou criados no servidor
 	toUpdateList := []string{}
 
@@ -121,7 +117,6 @@ func Diff(localHash, serverHash map[string]DirEntry) []string {
 
 		// se o elemento que está em localHash também existir em serverHash
 		if _, exist := serverHash[keyLocal]; exist {
-
 			// comparar a data de modificação
 			// se a data de modificação do elemento em localHash for mais recente que a data de modificação do elemento em serverHash
 			if (localHash[keyLocal].ModDate).Before(serverHash[keyLocal].ModDate) {
@@ -135,18 +130,26 @@ func Diff(localHash, serverHash map[string]DirEntry) []string {
 			// Adiciona a keyLocal em toUpdateList
 			toUpdateList = append(toUpdateList, keyLocal)
 		}
+
 	}
 
 	return toUpdateList
 }
 
-// func main() {
-// 	hash1 := CreateLocalHash("../../Backup-System")
-// 	fmt.Println("hash backup pronto, ja tenho")
-// 	time.Sleep(20 * time.Second)
-// 	fmt.Println("criando hash2...")
-// 	hash2 := CreateLocalHash("../../Backup-System")
+// Verifica os arquivos que precisam ser excluídos do server
+func DiffToDelete(serverHash, localHash map[string]DirEntry) []string {
 
-// 	// simulando hash_loal e hash_server
-// 	fmt.Println(Diferenca(hash1, hash2))
-// }
+	// Lista que o server utilizará para excluir os arquivos
+	toDeleteList := []string{}
+
+	for keyServer := range serverHash {
+
+		// se o elemento que está em serverHash não existir em localHash
+		if _, exist := localHash[keyServer]; !exist {
+
+			// Adiciona na lista para exclui o path keyServer de serverHash
+			toDeleteList = append(toDeleteList, keyServer)
+		}
+	}
+	return toDeleteList
+}

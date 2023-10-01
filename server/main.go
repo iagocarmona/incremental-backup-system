@@ -134,7 +134,7 @@ func getHashClient(conn net.Conn) (map[string]hash.DirEntry, error) {
 	return hashClient, nil
 }
 
-func receiveFiles(conn net.Conn, backupPath string, isFirstBackup bool, dirPath string) {
+func receiveFiles(conn net.Conn, backupPath string, isFirstBackup bool, dirPath string, saveHistory string) {
 	// =============================================================================
 	//                                 HASH CLIENT
 	// =============================================================================
@@ -156,6 +156,33 @@ func receiveFiles(conn net.Conn, backupPath string, isFirstBackup bool, dirPath 
 		return
 	}
 
+	// pega a lista de arquivos que precisam ser deletados
+	toDeleteList := hash.DiffToDelete(hashServer, hashClient)
+
+	// =============================================================================
+	//                                 DELETE FILES
+	// =============================================================================
+	for _, file := range toDeleteList {
+		filePath := "backups/" + file
+		if saveHistory == "true" {
+			hash.Remove(&hashServer, file)
+
+			// renomeia o arquivo para um nome em SHA-1
+			err = os.Rename(filePath, "backups/"+file+".deleted")
+			if err != nil {
+				color.Red("Erro ao renomear o arquivo %s: %v\n", file, err)
+			}
+		} else {
+			err := os.RemoveAll(filePath)
+			if err != nil {
+				color.Red("Erro ao deletar o arquivo %s: %v\n", file, err)
+			} else {
+				color.Green("Arquivo %s deletado com sucesso\n", filePath)
+			}
+			hash.Remove(&hashServer, file)
+		}
+	}
+
 	for {
 		// =============================================================================
 		//  							 IF NOT FIRST BACKUP
@@ -163,7 +190,7 @@ func receiveFiles(conn net.Conn, backupPath string, isFirstBackup bool, dirPath 
 
 		if !isFirstBackup {
 			// faz a comparação entre as duas hash
-			toUpdateList := hash.Diff(hashServer, hashClient)
+			toUpdateList := hash.DiffToUpdate(hashClient, hashServer)
 
 			// envia para o cliente a lista em bytes
 			toUpdateListBytes, err := json.Marshal(toUpdateList)
@@ -275,6 +302,8 @@ func receiveFiles(conn net.Conn, backupPath string, isFirstBackup bool, dirPath 
 		}
 
 		fmt.Printf("Arquivo %s recebido com sucesso!\n", fileName)
+
+		hashServer = hashClient
 	}
 }
 
@@ -337,7 +366,7 @@ func handleClient(conn net.Conn) {
 				return
 			}
 
-			receiveFiles(conn, backupPath, true, request.DirPath)
+			receiveFiles(conn, backupPath, true, request.DirPath, request.SaveHistory)
 		} else {
 			fmt.Println("Não é o primeiro backup")
 			// Envia uma confirmação ao cliente
@@ -347,7 +376,7 @@ func handleClient(conn net.Conn) {
 				return
 			}
 
-			receiveFiles(conn, backupPath, false, request.DirPath)
+			receiveFiles(conn, backupPath, false, request.DirPath, request.SaveHistory)
 		}
 	}
 }

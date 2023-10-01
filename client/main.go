@@ -168,8 +168,6 @@ func sendIncremenalBackup(request Request, conn net.Conn) error {
 		listSize += int64(listSizeBytes[i]) << uint(8*(7-i))
 	}
 
-	color.Yellow("Tamanho da lista de arquivos:", listSize)
-
 	// Recebe a lista de arquivos em JSON
 	listBytes := make([]byte, listSize)
 	_, err = conn.Read(listBytes)
