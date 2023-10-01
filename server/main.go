@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	hash "incremental-backup-system/cmd"
 	"io"
 	"net"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/spf13/viper"
 )
 
 type Request struct {
@@ -18,6 +18,8 @@ type Request struct {
 	IsFirstBackup string
 	SaveHistory   string
 }
+
+var hashServer map[string]hash.DirEntry
 
 func getFileSize(conn net.Conn) (int64, error) {
 	//receber o tamanho do arquivo em 8 bytes
@@ -97,8 +99,117 @@ func getFileContent(conn net.Conn, fileSize int64, file *os.File) ([]byte, error
 	return fileContent, err
 }
 
-func receiveFiles(conn net.Conn, backupPath string) {
+func getHashClient(conn net.Conn) (map[string]hash.DirEntry, error) {
+	// Pega o tamanho do buffer
+	bufferSize, err := getFileSize(conn)
+	if err != nil {
+		return nil, err
+	}
+
+	// Envia uma confirmação de 1 byte para o cliente
+	_, err = conn.Write([]byte{1})
+	if err != nil {
+		color.Red("Erro ao enviar confirmação: %v\n", err)
+		return nil, err
+	}
+
+	// Cria um buffer para armazenar os dados recebidos
+	buffer := make([]byte, bufferSize)
+
+	// Lê os dados do buffer
+	_, err = io.ReadFull(conn, buffer)
+	if err != nil {
+		color.Red("Erro ao ler os dados do buffer: %v\n", err)
+		return nil, err
+	}
+
+	// Agora você pode desserializar os dados para hash.HashTable
+	var hashClient map[string]hash.DirEntry
+	err = json.Unmarshal(buffer, &hashClient)
+	if err != nil {
+		color.Red("Erro ao desserializar os dados para hash.HashTable: %v\n", err)
+		return nil, err
+	}
+
+	return hashClient, nil
+}
+
+func receiveFiles(conn net.Conn, backupPath string, isFirstBackup bool, dirPath string) {
+	// =============================================================================
+	//                                 HASH CLIENT
+	// =============================================================================
+
+	// Pega a hash do cliente
+	hashClient, err := getHashClient(conn)
+	if err != nil {
+		return
+	}
+
+	if isFirstBackup {
+		hashServer = hashClient
+	}
+
+	// envia uma confirmação de 1 byte para o cliente
+	_, err = conn.Write([]byte{1})
+	if err != nil {
+		color.Red("Erro ao enviar confirmação: %v\n", err)
+		return
+	}
+
 	for {
+		// =============================================================================
+		//  							 IF NOT FIRST BACKUP
+		// =============================================================================
+
+		if !isFirstBackup {
+			// faz a comparação entre as duas hash
+			toUpdateList := hash.Diff(hashServer, hashClient)
+
+			// envia para o cliente a lista em bytes
+			toUpdateListBytes, err := json.Marshal(toUpdateList)
+			if err != nil {
+				color.Red("Erro ao serializar a lista: %v\n", err)
+				return
+			}
+
+			// Calcula o tamanho total toUpdateListBytes
+			totalSize := len(toUpdateListBytes)
+
+			// Converte o tamanho total em 8 bytes
+			totalSizeBytes := make([]byte, 8)
+			for i := 0; i < 8; i++ {
+				totalSizeBytes[i] = byte(totalSize >> uint(8*(7-i)))
+			}
+
+			_, err = conn.Write(totalSizeBytes)
+			if err != nil {
+				color.Red("Erro ao enviar o tamanho da lista: %v\n", err)
+				return
+			}
+
+			// Recebe uma confirmação de 1 byte do cliente
+			buffer := make([]byte, 1)
+			_, err = conn.Read(buffer)
+			if err != nil {
+				color.Red("Erro ao receber confirmação: %v\n", err)
+				return
+			}
+
+			_, err = conn.Write(toUpdateListBytes)
+			if err != nil {
+				color.Red("Erro ao enviar a lista: %v\n", err)
+				return
+			}
+
+			//  Recebe uma confirmação de 1 byte do cliente
+			buffer = make([]byte, 1)
+			_, err = conn.Read(buffer)
+			if err != nil {
+				color.Red("Erro ao receber confirmação: %v\n", err)
+				return
+			}
+		}
+
 		// =============================================================================
 		//                                 FILESIZE
 		// =============================================================================
@@ -226,7 +337,7 @@ func handleClient(conn net.Conn) {
 				return
 			}
 
-			receiveFiles(conn, backupPath)
+			receiveFiles(conn, backupPath, true, request.DirPath)
 		} else {
 			fmt.Println("Não é o primeiro backup")
 			// Envia uma confirmação ao cliente
@@ -236,30 +347,8 @@ func handleClient(conn net.Conn) {
 				return
 			}
 
-			receiveFiles(conn, backupPath)
+			receiveFiles(conn, backupPath, false, request.DirPath)
 		}
-	}
-}
-
-func resetConfig() {
-	// Configure o Viper para usar o local storage
-	viper.SetConfigName("config") // Nome do arquivo de configuração (ex: config.yaml)
-	viper.AddConfigPath("../")    // Diretório onde o arquivo de configuração está localizado
-	viper.SetConfigType("yaml")   // Tipo do arquivo de configuração (ex: YAML)
-
-	// Ler o arquivo de configuração
-	if err := viper.ReadInConfig(); err != nil {
-		color.Red("Erro ao ler o arquivo de configuração: %v\n", err)
-		return
-	}
-
-	// Criar a variável isFirstBackup no local storage
-	viper.Set("isFirstBackup", true)
-
-	// Salvar a variável isFirstBackup no local storage
-	if err := viper.WriteConfig(); err != nil {
-		color.Red("Erro ao salvar o arquivo de configuração: %v\n", err)
-		return
 	}
 }
 
