@@ -13,9 +13,9 @@ import (
 // ********* Hash *********
 // CreateLocalHash(): criar uma hash, percorrer estrutura de diretórios local com WalkDir() e adicionando chave (path) e valor (dirEntry) à hash
 
-// Diferenca(localHash, serverHash): lista as dirEntries novas ou alteradas no local e não existem ou estão mais antigas no server (talvez dê pra separar em duas func, mas talvez dê pra fazer tudo junto)
+// DiffToUpdate(localHash, serverHash): lista as dirEntries novas ou alteradas no local e não existem ou estão mais antigas no server (talvez dê pra separar em duas func, mas talvez dê pra fazer tudo junto)
 // UpdateServerHash(lista_modificacao, serverHash): insere as novas (e/ou modificadas) dirEntries na hash do server
-// DifInversa ou Complemento - n sei se eh complemento (serverHash, localHash): exclui as dirEntries que existem no server e não existem no local (se a flag... ou verificar essa flag antes de permitir a chamada dessa func)
+// DiffToDelete (serverHash, localHash): exclui as dirEntries que existem no server e não existem no local (se a flag... ou verificar essa flag antes de permitir a chamada dessa func)
 
 // CreateDirTree(): transforma o hash do server em uma estrutura de diretórios
 // ************************
@@ -98,6 +98,48 @@ func CreateLocalHash(dirPath string) map[string]DirEntry {
 	return localHash.table
 }
 
+// Atualiza a tabela hash do cliente
+func (htl *HashTable) UpdateLocalHash(dirPath string) {
+
+	// Verificando se o diretório (especificado no comando) existe na máquina local
+	_, err := os.Stat(dirPath)
+	if err != nil {
+
+		if os.IsNotExist(err) {
+			log.Fatalf("O diretório '%s' não existe.", dirPath)
+		} else {
+			log.Fatalf("Erro ao verificar o diretório: %s", err)
+		}
+	}
+
+	// Percorre o diretório especificado no comando recursivamente de forma préfixa
+	err = filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
+
+		if d.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		// Verificando se d é um arquivo
+		if !d.IsDir() {
+
+			// se o elemento não existe na Hash Local
+			if _, exist := htl.table[path]; !exist {
+
+				// Insere key: path e value: dirEntry na hash
+				htl.Put(path, d)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("impossible to walk directories: %s", err)
+	}
+
+	// fmt.Println("Hash final:")
+	fmt.Print(htl.table)
+}
+
 // Compara a hash local com a hash do server buscando o que existe na hash do local mas não existe na hash do server (ou que precisa ser atualizado no server)
 func Diferenca(localHash, serverHash map[string]DirEntry) []string {
 
@@ -138,7 +180,7 @@ func DiffToDelete(serverHash, localHash map[string]DirEntry) []string {
 		// se o elemento que está em serverHash não existir em localHash
 		if _, exist := localHash[keyServer]; !exist {
 
-			// Adiciona na lista para exclui o path keyServer de serverHash
+			// Adiciona na lista para excluir o path keyServer de serverHash
 			toDeleteList = append(toDeleteList, keyServer)
 		}
 	}
