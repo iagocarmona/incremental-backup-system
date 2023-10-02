@@ -9,27 +9,25 @@ import (
 	"time"
 )
 
-// ********* Hash *********
-// CreateLocalHash(): criar uma hash, percorrer estrutura de diretórios local com WalkDir() e adicionando chave (path) e valor (dirEntry) à hash
-
-// Diferenca(localHash, serverHash): lista as dirEntries novas ou alteradas no local e não existem ou estão mais antigas no server (talvez dê pra separar em duas func, mas talvez dê pra fazer tudo junto)
-// UpdateServerHash(lista_modificacao, serverHash): insere as novas (e/ou modificadas) dirEntries na hash do server
-// DifInversa ou Complemento - n sei se eh complemento (serverHash, localHash): exclui as dirEntries que existem no server e não existem no local (se a flag... ou verificar essa flag antes de permitir a chamada dessa func)
-
-// CreateDirTree(): transforma o hash do server em uma estrutura de diretórios
-// ************************
-
+/*******************************************
+*              Estruturas                  *
+********************************************/
 // Entrada de diretório: arquivo ou diretório
 type DirEntry struct {
-	Name    string    // n sei se é necessário
-	ModDate time.Time // modified date
+	Name    string
+	ModDate time.Time // Data de Modificação
 }
 
+// Tabela Hash com Key: Path e Value: DirEntry
 type HashTable struct {
-	table map[string]DirEntry // key: path, value: DirEntry
+	table map[string]DirEntry
 	mutex sync.RWMutex
 }
 
+/*******************************************
+*            Funções Auxiliares            *
+********************************************/
+// Insere um novo elemento na hash
 func (ht *HashTable) Put(key string, d fs.DirEntry) {
 	ht.mutex.Lock()
 	defer ht.mutex.Unlock()
@@ -47,11 +45,14 @@ func (ht *HashTable) Put(key string, d fs.DirEntry) {
 	}
 }
 
-// crie uma função para remover uma chave
+// Remove um elemento da hash
 func Remove(serverHash *map[string]DirEntry, key string) {
 	delete(*serverHash, key)
 }
 
+/*******************************************
+*            Funções Principais            *
+********************************************/
 // Cria a tabela hash da máquina local (client)
 func CreateLocalHash(dirPath string) map[string]DirEntry {
 
@@ -61,10 +62,8 @@ func CreateLocalHash(dirPath string) map[string]DirEntry {
 
 		if os.IsNotExist(err) {
 			log.Fatalf("O diretório '%s' não existe.", dirPath)
-			// return // alterar retorno
 		} else {
 			log.Fatalf("Erro ao verificar o diretório: %s", err)
-			// return // alterar retorno
 		}
 	}
 
@@ -75,6 +74,7 @@ func CreateLocalHash(dirPath string) map[string]DirEntry {
 	// Percorre o diretório especificado no comando recursivamente de forma préfixa
 	err = filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
 
+		// ignora os diretórios .git
 		if d.Name() == ".git" {
 			return filepath.SkipDir
 		}
@@ -92,6 +92,48 @@ func CreateLocalHash(dirPath string) map[string]DirEntry {
 	}
 
 	return localHash.table
+}
+
+// Atualiza a tabela hash do cliente
+func (htl *HashTable) UpdateLocalHash(dirPath string) {
+
+	// Verificando se o diretório (especificado no comando) existe na máquina local
+	_, err := os.Stat(dirPath)
+	if err != nil {
+
+		if os.IsNotExist(err) {
+			log.Fatalf("O diretório '%s' não existe.", dirPath)
+		} else {
+			log.Fatalf("Erro ao verificar o diretório: %s", err)
+		}
+	}
+
+	// Percorre o diretório especificado no comando recursivamente de forma préfixa
+	err = filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
+
+		if d.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		// Verificando se d é um arquivo
+		if !d.IsDir() {
+
+			// se o elemento não existe na Hash Local
+			if _, exist := htl.table[path]; !exist {
+
+				// Insere key: path e value: dirEntry na hash
+				htl.Put(path, d)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("impossible to walk directories: %s", err)
+	}
+
+	// fmt.Println("Hash final:")
+	// fmt.Print(htl.table)
 }
 
 // Cria a tabela hash do servidor
