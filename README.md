@@ -34,6 +34,23 @@ por padrão `porta` será **6677**
 
 # Autores
 
-Iago Ortega Carmona
+<center>
+<table>
+  <tr>
+<td align="center"><a href="https://github.com/iagocarmona">
+ <img style="border-radius: 50%;" src="https://avatars.githubusercontent.com/u/69121686?s=400&u=c6fc38d355b96f4abf690ae95912c07e5f057b94&v=4" width="200px;" alt="Avatar Iago"/>
+<br />
+ <b>Iago Carmona</b>
+ </a> <a href="https://github.com/iagocarmona" title="Repositorio Iago"></a>
 
-Gustavo Zanzin Guerreiro Martins
+[![Github Badge](https://img.shields.io/badge/-iagocarmona-000?style=flat-square&logo=Github&logoColor=white&link=https://github.com/iagocarmona)](https://github.com/iagocarmona)</td>
+
+<td align="center"><a href="https://github.com/GustavoMartinx">
+ <img style="border-radius: 50%;" src="https://avatars.githubusercontent.com/u/90780907?v=4" width="200px;" alt="Avatar Gustavo"/>
+<br />
+ <b>Gustavo Zanzin</b>
+ </a> <a href="https://github.com/GustavoMartinx" title="Repositorio Gustavo"></a>
+
+[![Github Badge](https://img.shields.io/badge/-GustavoMartinx-000?style=flat-square&logo=Github&logoColor=white&link=https://github.com/GustavoMartinx)](https://github.com/GustavoMartinx)</td>
+</tr></table>
+</center>
